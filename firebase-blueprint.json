@@ -1,0 +1,94 @@
+{
+  "entities": {
+    "Campaign": {
+      "title": "Campaign",
+      "description": "A marketing or UGC campaign created by a campaigner",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "productDescription": { "type": "string" },
+        "productType": { "type": "string" },
+        "targetAudience": { "type": "string" },
+        "platforms": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "approvedClaims": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "prohibitedClaims": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "requiredDisclosures": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "instructions": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "ownerEmail": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "name",
+        "productDescription",
+        "productType",
+        "targetAudience",
+        "platforms",
+        "approvedClaims",
+        "prohibitedClaims",
+        "requiredDisclosures",
+        "instructions",
+        "ownerId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RegulatoryEntry": {
+      "title": "RegulatoryEntry",
+      "description": "A regulatory rule, statute, or standard entry curated by reviewers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "source": { "type": "string" },
+        "documentName": { "type": "string" },
+        "sectionRef": { "type": "string" },
+        "summary": { "type": "string" },
+        "effectiveDate": { "type": "string" },
+        "topicTags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "sourceUrl": { "type": "string" },
+        "createdById": { "type": "string" },
+        "createdByEmail": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "source",
+        "documentName",
+        "sectionRef",
+        "summary",
+        "effectiveDate",
+        "topicTags",
+        "sourceUrl",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/campaigns/{campaignId}": {
+      "schema": { "$ref": "#/entities/Campaign" },
+      "description": "Collection of UGC campaigns created by campaigners"
+    },
+    "/regulatory_entries/{entryId}": {
+      "schema": { "$ref": "#/entities/RegulatoryEntry" },
+      "description": "Collection of regulatory reference rules and guidance documents"
+    }
+  }
+}

@@ -10,9 +10,26 @@ import {
   onAuthStateChanged,
   User as FirebaseUser
 } from 'firebase/auth';
+import { 
+  getFirestore, 
+  Firestore 
+} from 'firebase/firestore';
+import appletConfig from '../../firebase-applet-config.json';
 
-// Detect Firebase configuration from environment or fallback
+// Detect Firebase configuration: Prefer firebase-applet-config.json, then env, then fallback
 const getFirebaseConfig = () => {
+  if (appletConfig && appletConfig.apiKey && appletConfig.projectId) {
+    return {
+      apiKey: appletConfig.apiKey,
+      authDomain: appletConfig.authDomain,
+      projectId: appletConfig.projectId,
+      storageBucket: appletConfig.storageBucket,
+      messagingSenderId: appletConfig.messagingSenderId,
+      appId: appletConfig.appId,
+      firestoreDatabaseId: appletConfig.firestoreDatabaseId
+    };
+  }
+
   const env = (import.meta as { env?: Record<string, string | undefined> }).env || {};
   if (env.VITE_FIREBASE_API_KEY && env.VITE_FIREBASE_PROJECT_ID) {
     return {
@@ -22,12 +39,8 @@ const getFirebaseConfig = () => {
       storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
       messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
       appId: env.VITE_FIREBASE_APP_ID,
+      firestoreDatabaseId: env.VITE_FIREBASE_DATABASE_ID
     };
-  }
-
-  // Check if window.__FIREBASE_CONFIG__ or process is injected
-  if (typeof window !== 'undefined' && (window as unknown as { __FIREBASE_CONFIG__?: Record<string, string> }).__FIREBASE_CONFIG__) {
-    return (window as unknown as { __FIREBASE_CONFIG__: Record<string, string> }).__FIREBASE_CONFIG__;
   }
 
   return null;
@@ -38,12 +51,19 @@ export const isFirebaseConfigured = Boolean(config && config.apiKey && config.pr
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
+let db: Firestore | null = null;
 const googleProvider = new GoogleAuthProvider();
 
 if (isFirebaseConfigured && config) {
   try {
     app = getApps().length > 0 ? getApp() : initializeApp(config);
     auth = getAuth(app);
+    // Initialize Firestore with specific database ID if specified in applet config
+    if (config.firestoreDatabaseId) {
+      db = getFirestore(app, config.firestoreDatabaseId);
+    } else {
+      db = getFirestore(app);
+    }
   } catch (err) {
     console.warn('Firebase initialization warning:', err);
   }
@@ -52,6 +72,7 @@ if (isFirebaseConfigured && config) {
 export { 
   app, 
   auth, 
+  db,
   googleProvider, 
   signInWithPopup, 
   signInWithEmailAndPassword, 

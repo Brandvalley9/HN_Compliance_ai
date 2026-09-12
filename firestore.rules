@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerId) {
+      return isAuthenticated() && request.auth.uid == ownerId;
+    }
+
+    match /campaigns/{campaignId} {
+      // Allow read to authenticated users (campaigners, creators, reviewers)
+      allow read: if isAuthenticated();
+
+      // Allow create if user is authenticated and sets themselves as owner
+      allow create: if isAuthenticated() 
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0;
+
+      // Allow update if user is the campaign owner
+      allow update: if isOwner(resource.data.ownerId)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0;
+
+      // Allow delete if user is the campaign owner
+      allow delete: if isOwner(resource.data.ownerId);
+    }
+
+    match /regulatory_entries/{entryId} {
+      // Allow read to authenticated users (reviewers, compliance auditors)
+      allow read: if isAuthenticated();
+
+      // Allow create if authenticated user provides required fields
+      allow create: if isAuthenticated()
+        && request.resource.data.source is string
+        && request.resource.data.documentName is string
+        && request.resource.data.summary is string;
+
+      // Allow update if authenticated user provides valid data
+      allow update: if isAuthenticated()
+        && request.resource.data.source is string
+        && request.resource.data.documentName is string;
+
+      // Allow delete to authenticated users
+      allow delete: if isAuthenticated();
+    }
+  }
+}

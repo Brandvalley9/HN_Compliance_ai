@@ -29,7 +29,7 @@ const roleNavigation: Record<UserRole, { title: string; items: SidebarItem[] }> 
     title: 'Campaigner Portal',
     items: [
       { id: 'camp-overview', label: 'Dashboard Overview', icon: LayoutDashboard, isPlanned: false },
-      { id: 'camp-campaigns', label: 'Campaign Management', icon: Megaphone, isPlanned: true, futureCapability: 'Campaign management' },
+      { id: 'camp-campaigns', label: 'Campaign Management', icon: Megaphone, isPlanned: false },
       { id: 'camp-rules', label: 'Deterministic Rules', icon: Scale, isPlanned: true, futureCapability: 'Deterministic compliance rules' },
       { id: 'camp-ai', label: 'AI Compliance Reasoning', icon: Bot, isPlanned: true, futureCapability: 'AI compliance reasoning' },
       { id: 'camp-audit', label: 'Audit Trails', icon: FileText, isPlanned: true, futureCapability: 'Audit trails' },
@@ -38,18 +38,17 @@ const roleNavigation: Record<UserRole, { title: string; items: SidebarItem[] }> 
   creator: {
     title: 'Creator Portal',
     items: [
-      { id: 'creator-overview', label: 'Dashboard Overview', icon: LayoutDashboard, isPlanned: false },
-      { id: 'creator-submissions', label: 'Creator Submissions', icon: UploadCloud, isPlanned: true, futureCapability: 'Creator submissions' },
-      { id: 'creator-precheck', label: 'AI Pre-Check Shell', icon: Bot, isPlanned: true, futureCapability: 'AI compliance reasoning' },
-      { id: 'creator-history', label: 'Version History', icon: History, isPlanned: true, futureCapability: 'Version history' },
+      { id: 'creator-overview', label: 'Assigned Campaigns', icon: Megaphone, isPlanned: false },
+      { id: 'creator-guardrails', label: 'Campaign Guardrails', icon: Scale, isPlanned: false },
+      { id: 'creator-submissions', label: 'Draft Submissions (Steps 3-5)', icon: UploadCloud, isPlanned: false },
+      { id: 'creator-history', label: 'Audit History', icon: History, isPlanned: false },
     ]
   },
   reviewer: {
     title: 'Reviewer Portal',
     items: [
-      { id: 'reviewer-overview', label: 'Dashboard Overview', icon: LayoutDashboard, isPlanned: false },
-      { id: 'reviewer-queue', label: 'Human Review Queue', icon: CheckSquare, isPlanned: true, futureCapability: 'Human review' },
-      { id: 'reviewer-regulatory', label: 'Regulatory Knowledge', icon: BookOpen, isPlanned: true, futureCapability: 'Regulatory knowledge' },
+      { id: 'reviewer-queue', label: 'Human Review Queue', icon: CheckSquare, isPlanned: false },
+      { id: 'reviewer-regulatory', label: 'Regulatory Knowledge', icon: BookOpen, isPlanned: false },
       { id: 'reviewer-logs', label: 'Audit & Compliance Logs', icon: ShieldAlert, isPlanned: true, futureCapability: 'Audit trails' },
     ]
   }
