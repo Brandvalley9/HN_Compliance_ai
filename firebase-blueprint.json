@@ -106,6 +106,31 @@
         "submittedAt",
         "finalApprovalStatus"
       ]
+    },
+    "ComplianceReport": {
+      "title": "ComplianceReport",
+      "description": "Compliance evaluation report containing AI reasoning, deterministic findings, and reviewer decisions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "campaignName": { "type": "string" },
+        "creatorHandle": { "type": "string" },
+        "submittedContentText": { "type": "string" },
+        "deterministicFindings": { "type": "array" },
+        "matchedRegulatoryEntries": { "type": "array" },
+        "aiReasoning": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "reviewerDecision": { "type": "object" }
+      },
+      "required": [
+        "submittedContentText",
+        "deterministicFindings",
+        "matchedRegulatoryEntries",
+        "aiReasoning",
+        "createdAt"
+      ]
     }
   },
   "firestore": {
@@ -120,6 +145,10 @@
     "/regulatory_entries/{entryId}": {
       "schema": { "$ref": "#/entities/RegulatoryEntry" },
       "description": "Collection of regulatory reference rules and guidance documents"
+    },
+    "/compliance_reports/{reportId}": {
+      "schema": { "$ref": "#/entities/ComplianceReport" },
+      "description": "Collection of compliance evaluation reports and reviewer queue items"
     }
   }
 }

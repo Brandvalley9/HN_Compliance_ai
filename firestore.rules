@@ -28,6 +28,31 @@ service cloud.firestore {
 
       // Allow delete if user is the campaign owner
       allow delete: if isOwner(resource.data.ownerId);
+
+      // Audit trail subcollection
+      match /audit_trail/{versionId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated()
+          && request.resource.data.campaignId == campaignId;
+        allow update: if isAuthenticated();
+        allow delete: if isAuthenticated();
+      }
+    }
+
+    match /compliance_reports/{reportId} {
+      // Allow read to authenticated users (creators, reviewers, campaigners)
+      allow read: if isAuthenticated();
+
+      // Allow create if authenticated user provides required report fields
+      allow create: if isAuthenticated()
+        && request.resource.data.submittedContentText is string
+        && request.resource.data.submittedContentText.size() > 0;
+
+      // Allow update if authenticated user records review decisions or updates report
+      allow update: if isAuthenticated();
+
+      // Allow delete to authenticated users
+      allow delete: if isAuthenticated();
     }
 
     match /regulatory_entries/{entryId} {
@@ -47,6 +72,10 @@ service cloud.firestore {
 
       // Allow delete to authenticated users
       allow delete: if isAuthenticated();
+    }
+
+    match /test/{testId} {
+      allow read: if isAuthenticated();
     }
   }
 }
