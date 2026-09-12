@@ -79,12 +79,43 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "CampaignAuditVersion": {
+      "title": "CampaignAuditVersion",
+      "description": "Immutable version record for campaign submissions, AI evaluations, regulatory citations, and reviewer decisions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "campaignName": { "type": "string" },
+        "versionNumber": { "type": "number" },
+        "submittedContentText": { "type": "string" },
+        "submittedBy": { "type": "object" },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "aiOutput": { "type": "object" },
+        "deterministicFindings": { "type": "array" },
+        "regulatoryEntriesUsed": { "type": "array" },
+        "reviewerDecision": { "type": "object" },
+        "finalApprovalStatus": { "type": "string" }
+      },
+      "required": [
+        "campaignId",
+        "versionNumber",
+        "submittedContentText",
+        "submittedBy",
+        "submittedAt",
+        "finalApprovalStatus"
+      ]
     }
   },
   "firestore": {
     "/campaigns/{campaignId}": {
       "schema": { "$ref": "#/entities/Campaign" },
       "description": "Collection of UGC campaigns created by campaigners"
+    },
+    "/campaigns/{campaignId}/audit_trail/{versionId}": {
+      "schema": { "$ref": "#/entities/CampaignAuditVersion" },
+      "description": "Subcollection of audit trail version records under each campaign"
     },
     "/regulatory_entries/{entryId}": {
       "schema": { "$ref": "#/entities/RegulatoryEntry" },
