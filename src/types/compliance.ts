@@ -11,7 +11,7 @@ export type IssueSeverity = 'LOW' | 'MEDIUM' | 'HIGH';
 export interface DeterministicFinding {
   ruleId: string;
   ruleName: string;
-  ruleCategory: 'required_disclosure' | 'prohibited_claim' | 'platform_format' | 'competitor_mention' | 'pricing_currency';
+  ruleCategory: 'required_disclosure' | 'prohibited_claim' | 'platform_format' | 'competitor_mention' | 'pricing_currency' | 'campaign_incomplete';
   status: 'PASS' | 'FAIL' | 'FLAG';
   message: string;
   matchedText?: string;
@@ -35,6 +35,7 @@ export interface ComplianceReasoningResult {
   overall_status: ComplianceOverallStatus;
   human_review_required: boolean;
   issues: ComplianceIssue[];
+  warning?: string;
 }
 
 export interface ComplianceReasoningInput {
@@ -72,6 +73,7 @@ export interface ComplianceReport {
   aiReasoning: ComplianceReasoningResult;
   createdAt: string;
   reviewerDecision?: ReviewerDecision;
+  warning?: string;
 }
 
 export interface FollowUpChatMessage {
@@ -92,4 +94,5 @@ export interface SubmissionHistoryItem {
   createdAt: string;
   chatMessages: FollowUpChatMessage[];
   reviewerDecision?: ReviewerDecision;
+  warning?: string;
 }

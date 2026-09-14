@@ -78,6 +78,18 @@ export const ComplianceEngineModal: React.FC<ComplianceEngineModalProps> = ({
       const detFindings = evaluateDeterministicRules(campaign, contentText);
       setDeterministicFindings(detFindings);
 
+      // Gate: Check if campaign completeness check failed
+      const incompleteFinding = detFindings.find(f => f.ruleCategory === 'campaign_incomplete');
+      if (incompleteFinding) {
+        setErrorMessage(
+          incompleteFinding.message || 
+          'This campaign brief is incomplete. The campaign must be completed by the campaigner (target audience, platforms, and product type required) before content can be checked.'
+        );
+        setIsRunning(false);
+        setStepStatus('idle');
+        return;
+      }
+
       // Step 4: Retrieve Matched Regulatory Knowledge Entries
       setStepStatus('retrieval');
       const contextItems: string[] = [
@@ -112,7 +124,8 @@ export const ComplianceEngineModal: React.FC<ComplianceEngineModalProps> = ({
         submittedContentText: contentText,
         deterministicFindings: detFindings,
         matchedRegulatoryEntries: retrievedRules,
-        aiReasoning: aiResponse
+        aiReasoning: aiResponse,
+        warning: aiResponse.warning
       }, user?.isDemo);
 
       setSavedReportId(reportId);
@@ -283,6 +296,21 @@ export const ComplianceEngineModal: React.FC<ComplianceEngineModalProps> = ({
           {/* AI Reasoning Results */}
           {aiResult && (
             <div id="ai-reasoning-results-container" className="space-y-6 pt-2">
+              {/* Fallback Warning Banner */}
+              {aiResult.warning && (
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 flex items-start gap-3 shadow-2xs">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                      Rule-Based Fallback Mode
+                    </p>
+                    <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                      This result was generated from rule checks only — Gemini was unavailable and did not review this submission.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Status Banner */}
               <div className="p-5 rounded-xl border border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">

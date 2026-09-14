@@ -280,6 +280,31 @@ export function evaluateDeterministicRules(
   campaign: Campaign,
   contentText: string
 ): DeterministicFinding[] {
+  // Campaign completeness gate: check targetAudience, platforms, and productType
+  const missingFields: string[] = [];
+  if (!campaign.targetAudience || !campaign.targetAudience.trim()) {
+    missingFields.push('targetAudience');
+  }
+  if (!campaign.platforms || !Array.isArray(campaign.platforms) || campaign.platforms.length === 0 || campaign.platforms.every(p => !p || !p.trim())) {
+    missingFields.push('platforms');
+  }
+  if (!campaign.productType || !campaign.productType.trim()) {
+    missingFields.push('productType');
+  }
+
+  if (missingFields.length > 0) {
+    return [
+      {
+        ruleId: 'gate-campaign-incomplete',
+        ruleName: 'Campaign Brief Incomplete',
+        ruleCategory: 'campaign_incomplete',
+        status: 'FAIL',
+        message: `Campaign brief is incomplete. Missing required configuration: ${missingFields.join(', ')}. The campaign must be completed by the campaigner before content can be checked.`,
+        ruleDefinition: 'Campaign must have targetAudience, platforms, and productType specified before compliance checks can run.'
+      }
+    ];
+  }
+
   const findings: DeterministicFinding[] = [];
   const lowerContent = contentText.toLowerCase();
 
@@ -458,11 +483,17 @@ export function validateComplianceReasoningResponse(
     };
   });
 
-  return {
+  const result: ComplianceReasoningResult = {
     overall_status,
     human_review_required,
     issues: validatedIssues
   };
+
+  if (raw.warning && typeof raw.warning === 'string') {
+    result.warning = raw.warning;
+  }
+
+  return result;
 }
 
 /**
@@ -505,8 +536,12 @@ export async function runAIComplianceReasoning(params: {
     throw new Error(json.error || 'Failed to retrieve AI compliance reasoning response.');
   }
 
-  // Client-side double validation to ensure data integrity
-  return validateComplianceReasoningResponse(json.data, matchedRegulatoryEntries);
+  // Client-side double validation to ensure data integrity, passing through warning if present
+  const validated = validateComplianceReasoningResponse(json.data, matchedRegulatoryEntries);
+  if (json.warning && !validated.warning) {
+    validated.warning = json.warning;
+  }
+  return validated;
 }
 
 /**

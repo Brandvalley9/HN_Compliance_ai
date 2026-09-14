@@ -126,6 +126,19 @@ export const CreatorSubmissionFlow: React.FC<CreatorSubmissionFlowProps> = ({
       await new Promise(r => setTimeout(r, 200));
       const deterministicFindings = evaluateDeterministicRules(campaign, textToEvaluate);
 
+      // Gate: Check if campaign completeness check failed
+      const incompleteFinding = deterministicFindings.find(f => f.ruleCategory === 'campaign_incomplete');
+      if (incompleteFinding) {
+        setErrorMessage(
+          incompleteFinding.message || 
+          'This campaign brief is incomplete. The campaign must be completed by the campaigner (target audience, platforms, and product type required) before content can be checked.'
+        );
+        setIsSubmitting(false);
+        setActiveStep(null);
+        setStepStatusText('');
+        return;
+      }
+
       // -------------------------------------------------------------
       // Step 4: Retrieve Matched Regulatory Knowledge Entries
       // -------------------------------------------------------------
@@ -165,7 +178,8 @@ export const CreatorSubmissionFlow: React.FC<CreatorSubmissionFlowProps> = ({
         submittedContentText: textToEvaluate,
         deterministicFindings,
         matchedRegulatoryEntries: matchedEntries,
-        aiReasoning: reasoningResult
+        aiReasoning: reasoningResult,
+        warning: reasoningResult.warning
       }, user?.isDemo);
 
       // Calculate next version number
@@ -178,7 +192,8 @@ export const CreatorSubmissionFlow: React.FC<CreatorSubmissionFlowProps> = ({
         matchedRegulatoryEntries: matchedEntries,
         aiReasoning: reasoningResult,
         createdAt: new Date().toISOString(),
-        chatMessages: []
+        chatMessages: [],
+        warning: reasoningResult.warning
       };
 
       // Add as newest at index 0
@@ -519,6 +534,21 @@ export const CreatorSubmissionFlow: React.FC<CreatorSubmissionFlowProps> = ({
                         "{item.submittedContentText}"
                       </p>
                     </div>
+
+                    {/* Visible AI Fallback Banner */}
+                    {(item.warning || item.aiReasoning.warning) && (
+                      <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 flex items-start gap-3 shadow-2xs">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                            Rule-Based Fallback Mode
+                          </p>
+                          <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                            This result was generated from rule checks only — Gemini was unavailable and did not review this submission.
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Overall Status Banner */}
                     <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

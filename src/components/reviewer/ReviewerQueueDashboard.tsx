@@ -87,6 +87,7 @@ export const ReviewerQueueDashboard: React.FC = () => {
   const redCount = reports.filter(r => r.aiReasoning?.overall_status === 'RED').length;
   const amberCount = reports.filter(r => r.aiReasoning?.overall_status === 'AMBER').length;
   const pendingCount = reports.filter(r => !r.reviewerDecision).length;
+  const fallbackCount = reports.filter(r => r.warning || r.aiReasoning?.warning).length;
 
   return (
     <div id="reviewer-queue-dashboard" className="space-y-6">
@@ -127,7 +128,7 @@ export const ReviewerQueueDashboard: React.FC = () => {
         </div>
 
         {/* Severity Metrics Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-100">
           <div className="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold text-rose-700 uppercase tracking-wider">High Severity (RED)</p>
@@ -151,8 +152,31 @@ export const ReviewerQueueDashboard: React.FC = () => {
             </div>
             <Inbox className="w-6 h-6 text-indigo-500" />
           </div>
+
+          <div className="p-3.5 rounded-xl bg-amber-50/40 border border-amber-200/80 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Rule Check Only</p>
+              <p className="text-xl font-black text-amber-950 mt-0.5">{fallbackCount}</p>
+            </div>
+            <AlertTriangle className="w-6 h-6 text-amber-600" />
+          </div>
         </div>
       </div>
+
+      {/* AI Fallback Notice Banner if any items in queue have fallback */}
+      {fallbackCount > 0 && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 flex items-start gap-3 shadow-2xs">
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
+              Notice: Rule-Based Fallbacks Present in Queue ({fallbackCount})
+            </p>
+            <p className="text-xs text-amber-800 leading-relaxed font-medium">
+              This result was generated from rule checks only — Gemini was unavailable and did not review this submission.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Action Notification */}
       {statusNotification && (

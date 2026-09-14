@@ -151,6 +151,13 @@ export const ReviewerQueueItem: React.FC<ReviewerQueueItemProps> = ({
                   Pending Reviewer Action
                 </span>
               )}
+
+              {(report.warning || report.aiReasoning?.warning) && (
+                <span className="text-[10px] font-bold text-amber-800 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3 text-amber-600" />
+                  Rule Check Fallback
+                </span>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
@@ -186,6 +193,21 @@ export const ReviewerQueueItem: React.FC<ReviewerQueueItemProps> = ({
         <div className="p-6 space-y-6">
           {/* Section 1: Submitted Content Text */}
           <div className="space-y-2">
+            {/* Fallback Warning Banner */}
+            {(report.warning || report.aiReasoning?.warning) && (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 flex items-start gap-3 shadow-2xs mb-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                    Rule-Based Fallback Mode
+                  </p>
+                  <p className="text-xs text-amber-800 leading-relaxed font-medium">
+                    This result was generated from rule checks only — Gemini was unavailable and did not review this submission.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
                 <FileText className="w-4 h-4 text-indigo-600" />
