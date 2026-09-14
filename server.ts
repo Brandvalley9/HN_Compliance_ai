@@ -151,9 +151,9 @@ ${
 
 REMINDER: Only cite regulatory references from the entries above. Return a valid JSON object matching the requested schema.`;
 
-    // Generate content with retry on transient upstream 503 overload errors
+    // Generate content with resilient fallback across models on transient upstream 503 overload errors
     let responseText: string | undefined;
-    const modelsToTry = ["gemini-3.8-flash", "gemini-flash-latest"];
+    const modelsToTry = ["gemini-3.6-flash", "gemini-3.8-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
     let lastError: any = null;
 
     for (const modelName of modelsToTry) {
@@ -191,6 +191,12 @@ REMINDER: Only cite regulatory references from the entries above. Return a valid
                         },
                         category: {
                           type: Type.STRING,
+                          enum: [
+                            "Prohibited & Unsubstantiated Claim",
+                            "Missing Mandatory Disclosure",
+                            "Platform Format & Placement",
+                            "General Compliance"
+                          ],
                           description: "Issue category, e.g. Misleading Claim, Missing Disclosure.",
                         },
                         finding: {
@@ -236,8 +242,13 @@ REMINDER: Only cite regulatory references from the entries above. Return a valid
           if (responseText) break;
         } catch (genErr: any) {
           lastError = genErr;
-          console.warn(`Attempt ${attempt} on model ${modelName} failed:`, genErr?.message || genErr);
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          console.log(`[Gemini Info] Attempt ${attempt} on model ${modelName} returned:`, genErr?.message || genErr);
+          // If it's a 503 high demand, break out of inner retry to switch immediately to alternative model
+          const errMsg = String(genErr?.message || "");
+          if (errMsg.includes("503") || errMsg.includes("high demand") || errMsg.includes("UNAVAILABLE")) {
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 800));
         }
       }
       if (responseText) break;
@@ -245,7 +256,7 @@ REMINDER: Only cite regulatory references from the entries above. Return a valid
 
     // Fallback if upstream Gemini API infrastructure is temporarily overloaded (503)
     if (!responseText) {
-      console.warn("Upstream Gemini API currently experiencing temporary high demand spike (503). Synthesizing grounded reasoning analysis from deterministic rule findings & matched regulatory statutes.");
+      console.log("[Gemini Fallback] Upstream Gemini API temporarily unavailable. Synthesizing grounded reasoning analysis from deterministic rule findings & matched regulatory statutes.");
 
       const fallbackIssues: any[] = [];
       let calculatedStatus: "GREEN" | "AMBER" | "RED" = "GREEN";
@@ -459,7 +470,7 @@ Creator: ${userMessage}
 Respond helpfully as the Creator Compliance Assistant. If you provide an alternative phrasing or rewrite, highlight it clearly so the creator can easily copy it or use it for their revised draft.`;
 
     let replyText = "";
-    const modelsToTry = ["gemini-3.8-flash", "gemini-flash-latest"];
+    const modelsToTry = ["gemini-3.6-flash", "gemini-3.8-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
 
     for (const modelName of modelsToTry) {
       try {
@@ -474,7 +485,7 @@ Respond helpfully as the Creator Compliance Assistant. If you provide an alterna
         replyText = response.text || "";
         if (replyText) break;
       } catch (err: any) {
-        console.warn(`Follow-up chat call failed on ${modelName}:`, err?.message || err);
+        console.log(`[Chat Gemini Info] Call on ${modelName} returned:`, err?.message || err);
       }
     }
 
