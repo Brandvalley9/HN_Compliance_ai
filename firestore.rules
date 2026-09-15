@@ -6,76 +6,102 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(ownerId) {
-      return isAuthenticated() && request.auth.uid == ownerId;
+    function getUserRole(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.role;
     }
 
+    function isCampaignOwner(campaignId) {
+      return get(/databases/$(database)/documents/campaigns/$(campaignId)).data.ownerId == request.auth.uid;
+    }
+
+    // Users Collection (/users/{uid})
+    // - Contains user document with role: 'campaigner' | 'creator' | 'reviewer'
+    // - Authenticated users can read their own profile. Reviewers can read user profiles.
+    // - Users can create/update their profile for their own uid.
+    match /users/{uid} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == uid ||
+        getUserRole(request.auth.uid) == 'reviewer'
+      );
+      allow create, update: if isAuthenticated() && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    // Campaigns Collection (/campaigns/{campaignId})
+    // - Create/Update/Delete: ONLY the owning campaigner (getUserRole(request.auth.uid) == 'campaigner' && request.auth.uid == ownerId)
+    // - Read: Reviewers, Campaign owners, or assigned Creators (getUserRole(request.auth.uid) == 'creator' && ('assignedCreators' in resource.data && request.auth.uid in resource.data.assignedCreators))
+    // - Writers: Creators and reviewers are strictly DENIED write access
     match /campaigns/{campaignId} {
-      // Allow read to authenticated users (campaigners, creators, reviewers)
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        getUserRole(request.auth.uid) == 'reviewer' ||
+        resource.data.ownerId == request.auth.uid ||
+        (getUserRole(request.auth.uid) == 'creator' && ('assignedCreators' in resource.data && request.auth.uid in resource.data.assignedCreators))
+      );
 
-      // Allow create if user is authenticated and sets themselves as owner
-      allow create: if isAuthenticated() 
-        && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0;
+      allow create: if isAuthenticated()
+        && getUserRole(request.auth.uid) == 'campaigner'
+        && request.resource.data.ownerId == request.auth.uid;
 
-      // Allow update if user is the campaign owner
-      allow update: if isOwner(resource.data.ownerId)
-        && request.resource.data.ownerId == resource.data.ownerId
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0;
+      allow update: if isAuthenticated()
+        && getUserRole(request.auth.uid) == 'campaigner'
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == request.auth.uid;
 
-      // Allow delete if user is the campaign owner
-      allow delete: if isOwner(resource.data.ownerId);
+      allow delete: if isAuthenticated()
+        && getUserRole(request.auth.uid) == 'campaigner'
+        && resource.data.ownerId == request.auth.uid;
 
-      // Audit trail subcollection
+      // Audit Trail (/campaigns/{campaignId}/audit_trail/{versionId})
+      // - Read: Reviewers and the owning campaigner
+      // - Create: Creator matching the report creatorId or owning campaigner / server logic
+      // - Update/Delete: Fully denied (immutable audit log)
       match /audit_trail/{versionId} {
-        allow read: if isAuthenticated();
-        allow create: if isAuthenticated()
-          && request.resource.data.campaignId == campaignId;
-        allow update: if isAuthenticated();
-        allow delete: if isAuthenticated();
+        allow read: if isAuthenticated() && (
+          getUserRole(request.auth.uid) == 'reviewer' ||
+          (getUserRole(request.auth.uid) == 'campaigner' && isCampaignOwner(campaignId))
+        );
+
+        allow create: if isAuthenticated() && (
+          (getUserRole(request.auth.uid) == 'creator' && request.resource.data.creatorId == request.auth.uid) ||
+          (getUserRole(request.auth.uid) == 'campaigner' && isCampaignOwner(campaignId))
+        );
+
+        allow update, delete: if false;
       }
     }
 
-    match /compliance_reports/{reportId} {
-      // Allow read to authenticated users (creators, reviewers, campaigners)
-      allow read: if isAuthenticated();
-
-      // Allow create if authenticated user provides required report fields
-      allow create: if isAuthenticated()
-        && request.resource.data.submittedContentText is string
-        && request.resource.data.submittedContentText.size() > 0;
-
-      // Allow update if authenticated user records review decisions or updates report
-      allow update: if isAuthenticated();
-
-      // Allow delete to authenticated users
-      allow delete: if isAuthenticated();
-    }
-
+    // Regulatory Entries (/regulatory_entries/{entryId})
+    // - Read: All authenticated users
+    // - Create/Update/Delete: ONLY users with role 'reviewer'
     match /regulatory_entries/{entryId} {
-      // Allow read to authenticated users (reviewers, compliance auditors)
       allow read: if isAuthenticated();
-
-      // Allow create if authenticated user provides required fields
-      allow create: if isAuthenticated()
-        && request.resource.data.source is string
-        && request.resource.data.documentName is string
-        && request.resource.data.summary is string;
-
-      // Allow update if authenticated user provides valid data
-      allow update: if isAuthenticated()
-        && request.resource.data.source is string
-        && request.resource.data.documentName is string;
-
-      // Allow delete to authenticated users
-      allow delete: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated()
+        && getUserRole(request.auth.uid) == 'reviewer';
     }
 
-    match /test/{testId} {
-      allow read: if isAuthenticated();
+    // Compliance Reports (/compliance_reports/{reportId})
+    // - Create: Creators can create a report ONLY for themselves (creatorId == request.auth.uid)
+    // - Read: Creators can read their own reports, Reviewers can read all reports, Campaigners can read reports for their owned campaigns
+    // - Update: Reviewers can update ONLY the reviewerDecision field (and updatedAt timestamp). AI reasoning, findings, and content remain immutable.
+    // - Delete: Denied to preserve compliance records
+    match /compliance_reports/{reportId} {
+      allow read: if isAuthenticated() && (
+        (getUserRole(request.auth.uid) == 'creator' && resource.data.creatorId == request.auth.uid) ||
+        getUserRole(request.auth.uid) == 'reviewer' ||
+        (getUserRole(request.auth.uid) == 'campaigner' && 
+          'campaignId' in resource.data && 
+          isCampaignOwner(resource.data.campaignId))
+      );
+
+      allow create: if isAuthenticated()
+        && getUserRole(request.auth.uid) == 'creator'
+        && request.resource.data.creatorId == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && getUserRole(request.auth.uid) == 'reviewer'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reviewerDecision', 'updatedAt']);
+
+      allow delete: if false;
     }
   }
 }
